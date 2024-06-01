@@ -2,7 +2,7 @@
 
 ## Overview
 
-Scout is a Python-based automation tool designed to download, verify, and process Material Safety Data Sheets (MSDS) from PDFs. It generates reports based on data from an Excel file. The tool can scrape websites for PDF files, verify their content, and organize them in a structured manner. It also logs the process and generates a CSV report.
+Scout is a Python-based automation tool designed to download, verify, and process Material Safety Data Sheets (MSDS) from PDFs. It generates reports based on data from an Excel file. The tool can scrape websites for PDF files, verify their content, and organize them in a structured manner. It also logs the process and generates a JSON report.
 
 ## Features
 
@@ -10,8 +10,7 @@ Scout is a Python-based automation tool designed to download, verify, and proces
 -   **Content Verification**: Verifies the content of PDFs to ensure they are MSDS files.
 -   **File Management**: Renames and moves verified PDFs to designated folders.
 -   **Web Scraping**: Recursively scrapes websites for PDF links.
--   **CSV Report Generation**: Generates a detailed report of the processed files.
--   **Logging**: Logs the process for debugging and monitoring.
+-   **JSON Report Generation**: Generates a detailed report of the processed files.
 
 ## Requirements
 
@@ -35,14 +34,12 @@ pip install -r requirements.txt
 ```
 git clone https://github.com/IDayanandJagtap/scout.git
 cd scout
-
 ```
 
 2. Install required python packages using
 
 ```
 pip install -r requirements.txt
-
 ```
 
 ## Usage
@@ -50,7 +47,7 @@ pip install -r requirements.txt
 -   To run scout from command line run
 
 ```
-    python scout_strict.py
+python scout_strict.py
 ```
 
 ## Logging
@@ -60,21 +57,21 @@ pip install -r requirements.txt
 
 ## Configurations
 
-    - PDFS_FOLDER: Directory to store downloaded PDFs.
-    - TEMP_FOLDER: Temporary directory for intermediate files.
-    - LOGS_FOLDER: Directory to store logs.
-    - SKIP_URLS: List of URLs to skip during the scraping process.
-    - DOWNLOAD_LIMIT: Limit for the number of downloads per item.
+- PDFS_FOLDER: Directory to store downloaded PDFs.
+- TEMP_FOLDER: Temporary directory for intermediate files.
+- LOGS_FOLDER: Directory to store logs.
+- SKIP_URLS: List of URLs to skip during the scraping process.
+- DOWNLOAD_LIMIT: Limit for the number of downloads per item.
 
 These configurations can be found and modified in the script.
 
 ## Contributors
 
-    - Atharva Sawant
-    - Dayanand Jagtap
-    - Saba Shaikh
-    - Shireen Tekade
+- Atharva Sawant
+- Dayanand Jagtap
+- Saba Shaikh
+- Shireen Tekade
 
 ## Contact
 
-    For any questions or support, please open an issue on GitHub or contact [dayanandjagtap07@gmail.com].
+For any questions or support, please open an issue on GitHub or contact [dayanandjagtap07@gmail.com].
