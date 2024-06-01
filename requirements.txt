@@ -1,0 +1,4 @@
+PyMuPDF
+requests
+beautifulsoup4
+google
