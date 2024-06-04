@@ -44,9 +44,9 @@ SKIP_URLS = [
     "mayoclinic.org", "nih.gov", "cdc.gov", "fda.gov", "epa.gov", "google.com",
     "bing.com", "yahoo.com", "ask.com", "aol.com", "baidu.com", "msn.com",
     "duckduckgo.com", "yandex.com", "coursera.org", "udemy.com", "edx.org",
-    "login", "register", "signup", "signin", "faq", "terms",
-    "conditions", "terms-of-service", "support", "help", "contact",
-    "about", "my-account", "favourites", "bulkOrder", "cart"
+    "login", "register", "signup", "signin", "faq", "terms", "conditions",
+    "terms-of-service", "support", "help", "contact", "about", "my-account",
+    "favourites", "bulkOrder", "cart"
 ]
 
 # URL visit count dictionary
@@ -62,6 +62,7 @@ REPORT_LIST = []
 DOWNLOAD_LIMIT = 5
 DOWNLOADED_FILES_COUNT = 0
 
+
 # Save report to JSON file
 def save_report():
     """
@@ -73,18 +74,23 @@ def save_report():
     if REPORT_LIST:
         try:
             json_string = json.dumps(REPORT_LIST, indent=4)
-            report_filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".json"
+            report_filename = datetime.now().strftime(
+                "%Y-%m-%d_%H-%M-%S") + ".json"
             report_filename = os.path.join(LOGS_FOLDER, report_filename)
             with open(report_filename, "w") as report_file:
                 report_file.write(json_string)
             print(f"Scout report generated, check {report_filename}")
+            return json_string
         except Exception as e:
             print(f"An error occurred while generating the report: {e}")
     else:
         print("NO REPORT GENERATED")
 
+    return {}
+
+
 # Add report entry
-def add_report(cas_or_name, filename, downloaded, provider):
+def add_report(cas, name, filename, downloaded, provider, url):
     """
     Add an entry to the global report list.
 
@@ -93,9 +99,18 @@ def add_report(cas_or_name, filename, downloaded, provider):
         filename (str): The name of the file.
         downloaded (bool): Whether the file was successfully downloaded.
         provider (str): The provider or source of the file.
+        url (str) : The url from which the pdf is downloaded.
     """
-    report = {"cas_or_name": cas_or_name, "provider": provider, "downloaded": downloaded, "filename": filename}
+    report = {
+        "cas": cas,
+        "name": name,
+        "provider": provider,
+        "downloaded": downloaded,
+        "filename": filename,
+        "url": url
+    }
     REPORT_LIST.append(report)
+
 
 # Check if URL is a PDF
 def is_pdf(url):
@@ -120,6 +135,7 @@ def is_pdf(url):
     except Exception as e:
         print(f"Error occurred while checking {url}: {e}")
         return False
+
 
 # Download PDF from URL
 def download_pdf(url, folder_path):
@@ -158,6 +174,7 @@ def download_pdf(url, folder_path):
         print(f"An error occurred while downloading {url}: {e}")
     return None
 
+
 # Extract text from PDF
 def extract_text_from_pdf(pdf_path):
     """
@@ -170,15 +187,20 @@ def extract_text_from_pdf(pdf_path):
         str: The extracted text content, or None if extraction failed.
     """
     try:
+        pageno = 1
         doc = fitz.open(pdf_path)
         text = ""
         for page in doc:
+            if pageno > 5:  # read only first 5 pages
+                break
             text += page.get_text()
+            pageno += 1
         doc.close()
         return text
     except Exception as e:
         print(f"An error occurred while extracting text from {pdf_path}: {e}")
         return None
+
 
 # Set regular expression pattern
 def set_pattern(sequence):
@@ -194,8 +216,9 @@ def set_pattern(sequence):
     escaped_sequence = re.escape(sequence)
     return re.compile(rf'\b{escaped_sequence}\b', re.IGNORECASE)
 
+
 # Verify PDF content
-def verify_pdf(file_path, cas_or_name):
+def verify_pdf(file_path, cas=None, name=None):
     """
     Verify if a PDF file contains the specified CAS number or element name and the phrase "safety data sheet".
 
@@ -209,19 +232,30 @@ def verify_pdf(file_path, cas_or_name):
     text = extract_text_from_pdf(file_path)
     if text is None:
         return False
-    pattern1 = set_pattern(cas_or_name)
+    pattern1 = set_pattern(cas or name)
     pattern2 = set_pattern("safety data sheet")
-    return pattern1.search(text) and pattern2.search(text)
+    if name is not None:
+        pattern3 = re.compile('|'.join(map(re.escape, name.split())),
+                              re.IGNORECASE)
+    # exact match
+    if pattern1.search(text) and pattern2.search(text):
+        return "same"
+    elif name is not None and pattern2.search(text) and pattern3.search(text):
+        return "similar"
+
+    return False
+
 
 # Rename and move file
-def rename_and_move_file(file_path, destination, cas_or_name, provider):
+def rename_and_move_file(file_path, destination, cas, name, provider):
     """
     Rename and move a file to a specified destination folder, ensuring a unique filename.
 
     Params:
         file_path (str): The original file path.
         destination (str): The destination folder path.
-        cas_or_name (str): The CAS number or element name for the new file name.
+        cas (str): The CAS number or element name for the new file name.
+        name (str) : The name of the Chemical.
         provider (str): The provider name for the new file name.
 
     Returns:
@@ -229,10 +263,10 @@ def rename_and_move_file(file_path, destination, cas_or_name, provider):
     """
     try:
         # Generate a unique file name
-        file_name = f"{cas_or_name}_{provider}.pdf"
+        file_name = f"{cas or name}_{provider}.pdf"
         counter = 1
         while os.path.exists(os.path.join(destination, file_name)):
-            file_name = f"{cas_or_name}_{provider}_{counter}.pdf"
+            file_name = f"{cas or name}_{provider}_{counter}.pdf"
             counter += 1
 
         # Move the file
@@ -240,8 +274,11 @@ def rename_and_move_file(file_path, destination, cas_or_name, provider):
         os.rename(file_path, new_location)
         return file_name
     except Exception as e:
-        print(f"An error occurred while renaming and moving file {file_path}: {e}")
+        print(
+            f"An error occurred while renaming and moving file {file_path}: {e}"
+        )
     return None
+
 
 # Scrape URLs from webpage
 def scrape_urls(url, base_url, timeout=10):
@@ -273,8 +310,9 @@ def scrape_urls(url, base_url, timeout=10):
         print(f"An error occurred while scraping links from {url}: {e}")
     return []
 
+
 # Find PDFs recursively
-def find_pdfs(url, depth=2, base_url=None, cas_or_name=None):
+def find_pdfs(url, depth=2, base_url=None, cas=None, name=None):
     """
     Recursively find PDFs from a URL, download and verify them.
 
@@ -296,7 +334,9 @@ def find_pdfs(url, depth=2, base_url=None, cas_or_name=None):
 
     # Check if the domain visit count exceeds the limit
     if DOMAIN_VISIT_COUNT.get(domain, 0) >= MAX_DOMAIN_VISITS:
-        print(f"Skipped: {url}, domain {domain} visited more than {MAX_DOMAIN_VISITS} times")
+        print(
+            f"Skipped: {url}, domain {domain} visited more than {MAX_DOMAIN_VISITS} times"
+        )
         return
 
     # Check if the specific URL visit count exceeds the limit
@@ -315,23 +355,32 @@ def find_pdfs(url, depth=2, base_url=None, cas_or_name=None):
     if is_pdf(url):
         file_path = download_pdf(url, TEMP_FOLDER)
         if file_path:
-            if verify_pdf(file_path, cas_or_name):
+            verification_status = verify_pdf(
+                file_path, cas, name)  # check the verification status
+            provider_name = base_url.split("/")[2]  # get the provider name
+            if verification_status == "same":
                 print(f"Verification status: {file_path} is probably a MSDS")
-                provider_name = base_url.split("/")[2]
-                file_name = rename_and_move_file(file_path, PDFS_FOLDER, cas_or_name, provider_name)
+                file_name = rename_and_move_file(file_path, PDFS_FOLDER, cas,
+                                                 name, provider_name)
                 if file_name:
-                    add_report(cas_or_name, file_name, True, provider_name)
+                    add_report(cas, name, file_name, True, provider_name, url)
+
+            elif verification_status == "similar":
+                add_report(cas, name, file_path, False, provider_name, url)
+
             else:
-                print(f"Verification status: {file_path} is not a verified MSDS")
-                # Delete the file
+                print(
+                    f"Verification status: {file_path} is not a verified MSDS")
+                # Delete unnecessary files
                 os.remove(file_path)
     else:
         links = scrape_urls(url, base_url)
         for link in links:
-            find_pdfs(link, depth - 1, base_url, cas_or_name)
+            find_pdfs(link, depth - 1, base_url, cas, name)
+
 
 # Search Google for MSDS
-def scout(cas_or_name, max_search_results=10):
+def scout(cas, name, max_search_results=10):
     """
     Search for Material Safety Data Sheets (MSDS) using Google and process the results.
 
@@ -339,39 +388,37 @@ def scout(cas_or_name, max_search_results=10):
         cas_or_name (str): The CAS number or element name to search for.
         max_search_results (int, optional): The maximum number of search results to process. Defaults to 10.
     """
-    query = f"download msds of {cas_or_name}"
-    print(f"Searching Google for: {query}")
-    search_results = search(query, num=max_search_results, stop=max_search_results)
-    for result in search_results:
-        print(f"Google search result: {result}")
-        find_pdfs(result, depth=2, base_url=None, cas_or_name=cas_or_name)
-    save_report()
 
-
-# User input handling
-def main():
-    """
-    Main function to handle user input and start the scouting process.
-    """
-    cas_or_name = input("Enter CAS number or element name: ").strip()
-    if not cas_or_name:
+    if cas is None and name is None:
         print("No input provided. Exiting.")
         return
 
-    scout(cas_or_name)
-
-
-
-if __name__ == "__main__":
-    main()
+    query = f"download msds of {cas or name}"
+    print(f"Searching Google for: {query}")
+    search_results = search(query,
+                            num=max_search_results,
+                            stop=max_search_results)
+    for result in search_results:
+        print(f"Google search result: {result}")
+        find_pdfs(result, depth=2, base_url=None, cas=cas, name=name)
+    report_in_json = save_report()
+    return report_in_json
 
 
 # cas - 106-38-7
 # name - Benzene, 1-bromo-4-methyl-
 
+scout(cas=None, name="Benzene, 1-bromo-4-methyl-")
 '''
-  1. requirements.txt
-  2. log url
+  Modifications done : 
+  1. Log url done 
+  2. Flexible + Strict combination
+
+  Next : 
+  1. Improve report
   3. selenium
   4. Improve static checks
+
+  **** Include the file path to the pdfs in the response (depends on the storage location)
+  
 '''
