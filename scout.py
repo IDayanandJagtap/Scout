@@ -407,7 +407,6 @@ def scout(cas, name, max_search_results=10):
 
 # cas - 106-38-7
 # name - Benzene, 1-bromo-4-methyl-
-scout(cas=None, name="Benzene, 1-bromo-4-methyl-")
 '''
   Modifications done : 
   1. Log url done 
