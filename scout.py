@@ -46,7 +46,7 @@ SKIP_URLS = [
     "duckduckgo.com", "yandex.com", "coursera.org", "udemy.com", "edx.org",
     "login", "register", "signup", "signin", "faq", "terms", "conditions",
     "terms-of-service", "support", "help", "contact", "about", "my-account",
-    "favourites", "bulkOrder", "cart"
+    "favourites", "bulkOrder", "cart", "pinterest", "scribd"
 ]
 
 # URL visit count dictionary
@@ -80,7 +80,7 @@ def save_report():
             with open(report_filename, "w") as report_file:
                 report_file.write(json_string)
             print(f"Scout report generated, check {report_filename}")
-            return json_string
+            return json.loads(json_string)
         except Exception as e:
             print(f"An error occurred while generating the report: {e}")
     else:
@@ -90,7 +90,7 @@ def save_report():
 
 
 # Add report entry
-def add_report(cas, name, filename, downloaded, provider, url):
+def add_report(cas, name, filename, verified, provider, url):
     """
     Add an entry to the global report list.
 
@@ -105,7 +105,7 @@ def add_report(cas, name, filename, downloaded, provider, url):
         "cas": cas,
         "name": name,
         "provider": provider,
-        "downloaded": downloaded,
+        "verified": verified,
         "filename": filename,
         "url": url
     }
@@ -407,18 +407,21 @@ def scout(cas, name, max_search_results=10):
 
 # cas - 106-38-7
 # name - Benzene, 1-bromo-4-methyl-
-
 scout(cas=None, name="Benzene, 1-bromo-4-methyl-")
 '''
   Modifications done : 
   1. Log url done 
   2. Flexible + Strict combination
+  3. Improve report
 
-  Next : 
-  1. Improve report
+  Next :
+  2. Folder names (verified and unverified)
   3. selenium
   4. Improve static checks
 
   **** Include the file path to the pdfs in the response (depends on the storage location)
-  
+  *** Storage 
+  *** Storage redundancy issues and two user thing
+  *** Extensive compatibility with platform
+
 '''
