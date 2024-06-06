@@ -13,41 +13,152 @@ from bs4 import BeautifulSoup
 from googlesearch import search
 
 # Directories setup
-PDFS_FOLDER = "./pdfs"
-TEMP_FOLDER = "./temp"
+PDFS_FOLDER = "./verified"
+TEMP_FOLDER = "./unverified"
 LOGS_FOLDER = "./logs"
 os.makedirs(PDFS_FOLDER, exist_ok=True)
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 os.makedirs(LOGS_FOLDER, exist_ok=True)
 
 # List of URLs to skip
-SKIP_URLS = [
-    "guidechem", "chemicalbook", "commonchemistry", "alpha-chemistry",
-    "lookchem", "home", "pharmaffiliates", "login", "privacy", "linkedin",
-    "twitter", "x.com", "facebook", "youtube", "support", "contact", "food",
-    "chemicalbook.com", "guidechem.com", "pharmaffiliates.com",
-    "benjaminmoore.com", "wikipedia", "imdb", "amazon", "ebay", "craigslist",
-    "pinterest", "instagram", "tumblr", "reddit", "snapchat", "tiktok",
-    "nytimes", "huffingtonpost", "forbes", "bloomberg", "bbc", "cnn",
-    "foxnews", "nbcnews", "abcnews", "theguardian", "dailymail", "usatoday",
-    "quora", "stackexchange", "stackoverflow", "tripadvisor", "yelp", "zomato",
-    "opentable", "healthline", "webmd", "mayoclinic", "nih.gov", "cdc.gov",
-    "fda.gov", "epa.gov", "google", "bing", "yahoo", "ask", "aol", "baidu",
-    "msn", "duckduckgo", "yandex", "coursera", "udemy", "edx", "khanacademy",
-    "linkedin.com", "twitter.com", "facebook.com", "youtube.com",
-    "instagram.com", "tumblr.com", "reddit.com", "snapchat.com", "tiktok.com",
-    "nytimes.com", "huffingtonpost.com", "forbes.com", "bloomberg.com",
-    "bbc.com", "cnn.com", "foxnews.com", "nbcnews.com", "abcnews.com",
-    "theguardian.com", "dailymail.co.uk", "usatoday.com", "quora.com",
-    "stackexchange.com", "stackoverflow.com", "tripadvisor.com", "yelp.com",
-    "zomato.com", "opentable.com", "healthline.com", "webmd.com",
-    "mayoclinic.org", "nih.gov", "cdc.gov", "fda.gov", "epa.gov", "google.com",
-    "bing.com", "yahoo.com", "ask.com", "aol.com", "baidu.com", "msn.com",
-    "duckduckgo.com", "yandex.com", "coursera.org", "udemy.com", "edx.org",
-    "login", "register", "signup", "signin", "faq", "terms", "conditions",
-    "terms-of-service", "support", "help", "contact", "about", "my-account",
-    "favourites", "bulkOrder", "cart", "pinterest", "scribd"
-]
+SKIP_URLS = set([
+    "guidechem",
+    "chemicalbook",
+    "commonchemistry",
+    "alpha-chemistry",
+    "lookchem",
+    "home",
+    "pharmaffiliates",
+    "login",
+    "privacy",
+    "linkedin",
+    "twitter",
+    "x.com",
+    "facebook",
+    "youtube",
+    "support",
+    "contact",
+    "food",
+    "chemicalbook.com",
+    "guidechem.com",
+    "pharmaffiliates.com",
+    "benjaminmoore.com",
+    "wikipedia",
+    "imdb",
+    "amazon",
+    "ebay",
+    "craigslist",
+    "pinterest",
+    "instagram",
+    "tumblr",
+    "reddit",
+    "snapchat",
+    "tiktok",
+    "nytimes",
+    "huffingtonpost",
+    "forbes",
+    "bloomberg",
+    "bbc",
+    "cnn",
+    "foxnews",
+    "nbcnews",
+    "abcnews",
+    "theguardian",
+    "dailymail",
+    "usatoday",
+    "quora",
+    "stackexchange",
+    "stackoverflow",
+    "tripadvisor",
+    "yelp",
+    "zomato",
+    "opentable",
+    "healthline",
+    "webmd",
+    "mayoclinic",
+    "nih.gov",
+    "cdc.gov",
+    "fda.gov",
+    "epa.gov",
+    "google",
+    "bing",
+    "yahoo",
+    "ask",
+    "aol",
+    "baidu",
+    "msn",
+    "duckduckgo",
+    "yandex",
+    "coursera",
+    "udemy",
+    "edx",
+    "khanacademy",
+    "linkedin.com",
+    "twitter.com",
+    "facebook.com",
+    "youtube.com",
+    "instagram.com",
+    "tumblr.com",
+    "reddit.com",
+    "snapchat.com",
+    "tiktok.com",
+    "nytimes.com",
+    "huffingtonpost.com",
+    "forbes.com",
+    "bloomberg.com",
+    "bbc.com",
+    "cnn.com",
+    "foxnews.com",
+    "nbcnews.com",
+    "abcnews.com",
+    "theguardian.com",
+    "dailymail.co.uk",
+    "usatoday.com",
+    "quora.com",
+    "stackexchange.com",
+    "stackoverflow.com",
+    "tripadvisor.com",
+    "yelp.com",
+    "zomato.com",
+    "opentable.com",
+    "healthline.com",
+    "webmd.com",
+    "mayoclinic.org",
+    "nih.gov",
+    "cdc.gov",
+    "fda.gov",
+    "epa.gov",
+    "google.com",
+    "bing.com",
+    "yahoo.com",
+    "ask.com",
+    "aol.com",
+    "baidu.com",
+    "msn.com",
+    "duckduckgo.com",
+    "yandex.com",
+    "coursera.org",
+    "udemy.com",
+    "edx.org",
+    "login",
+    "register",
+    "signup",
+    "signin",
+    "faq",
+    "terms",
+    "conditions",
+    "terms-of-service",
+    "support",
+    "help",
+    "contact",
+    "about",
+    "my-account",
+    "favourites",
+    "bulkOrder",
+    "cart",
+    "pinterest",
+    "scribd",
+])
 
 # URL visit count dictionary
 URL_VISIT_COUNT = {}
@@ -90,7 +201,7 @@ def save_report():
 
 
 # Add report entry
-def add_report(cas, name, filename, verified, provider, url):
+def add_report(cas, name, filepath, verified, provider, url):
     """
     Add an entry to the global report list.
 
@@ -106,7 +217,7 @@ def add_report(cas, name, filename, verified, provider, url):
         "name": name,
         "provider": provider,
         "verified": verified,
-        "filename": filename,
+        "filepath": filepath,
         "url": url
     }
     REPORT_LIST.append(report)
@@ -272,7 +383,7 @@ def rename_and_move_file(file_path, destination, cas, name, provider):
         # Move the file
         new_location = os.path.join(destination, file_name)
         os.rename(file_path, new_location)
-        return file_name
+        return new_location
     except Exception as e:
         print(
             f"An error occurred while renaming and moving file {file_path}: {e}"
@@ -359,18 +470,23 @@ def find_pdfs(url, depth=2, base_url=None, cas=None, name=None):
                 file_path, cas, name)  # check the verification status
             provider_name = base_url.split("/")[2]  # get the provider name
             if verification_status == "same":
-                print(f"Verification status: {file_path} is probably a MSDS")
-                file_name = rename_and_move_file(file_path, PDFS_FOLDER, cas,
-                                                 name, provider_name)
-                if file_name:
-                    add_report(cas, name, file_name, True, provider_name, url)
+                print(
+                    f"Verification status: {file_path} is probably the required MSDS"
+                )
+                new_file_path = rename_and_move_file(file_path, PDFS_FOLDER,
+                                                     cas, name, provider_name)
+                if new_file_path:
+                    add_report(cas, name, new_file_path, True, provider_name,
+                               url)
 
             elif verification_status == "similar":
+                print(
+                    f"Verification status: {file_path} may be the required MSDS"
+                )
                 add_report(cas, name, file_path, False, provider_name, url)
 
             else:
-                print(
-                    f"Verification status: {file_path} is not a verified MSDS")
+                print(f"Verification status: {file_path} is not a MSDS")
                 # Delete unnecessary files
                 os.remove(file_path)
     else:
