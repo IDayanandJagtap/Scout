@@ -6,3 +6,5 @@ asyncio
 aiohttp
 fastapi
 uvicorn
+pandas
+openpyxl

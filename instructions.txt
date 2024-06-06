@@ -1,0 +1,10 @@
+1. Make documentation
+2. Have a look at scout.py once 
+3. Clean and optimise scout_excel.py 
+
+4. provide doc details to the api user 
+	-provide excel file with (name="file") in html
+	-also error info
+
+5. Excel file details
+	- column should contain ("CAS", "ChemName", "ID")
