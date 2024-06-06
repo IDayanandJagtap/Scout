@@ -11,6 +11,8 @@ import fitz  # PyMuPDF
 import requests
 from bs4 import BeautifulSoup
 from googlesearch import search
+import asyncio
+import aiohttp
 
 # Directories setup
 PDFS_FOLDER = "./verified"
@@ -224,7 +226,7 @@ def add_report(cas, name, filepath, verified, provider, url):
 
 
 # Check if URL is a PDF
-def is_pdf(url):
+def is_pdf( url):
     """
     Check if a URL points to a PDF file.
 
@@ -237,6 +239,7 @@ def is_pdf(url):
     try:
         if url.endswith(".pdf"):
             return True
+
         response = requests.head(url, timeout=10)
         content_type = response.headers.get("content-type")
         return content_type == "application/pdf"
@@ -249,7 +252,7 @@ def is_pdf(url):
 
 
 # Download PDF from URL
-def download_pdf(url, folder_path):
+async def download_pdf(session, url):
     """
     Download a PDF file from a URL and save it to the specified folder.
 
@@ -262,25 +265,21 @@ def download_pdf(url, folder_path):
     """
     global DOWNLOADED_FILES_COUNT
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        if response.headers.get('content-type') == 'application/pdf':
-            file_name = url.split("/")[-1]
-            if not file_name.endswith(".pdf"):
-                file_name += ".pdf"
-            file_path = os.path.join(folder_path, file_name)
-            with open(file_path, 'wb') as pdf_file:
-                pdf_file.write(response.content)
-            print(f"Downloaded: {file_name}")
-            DOWNLOADED_FILES_COUNT += 1
-            return file_path
-        else:
-            print(f"Skipping {url}, not a PDF file.")
-            return None
-    except requests.Timeout:
-        print(f"Timeout occurred while downloading {url}")
-    except requests.HTTPError as e:
-        print(f"Failed to download {url}, HTTP error: {e}")
+        async with session.get(url,timeout=10) as response: 
+            response.raise_for_status()
+            if response.headers.get('content-type') == 'application/pdf':
+                file_name = url.split("/")[-1]
+                if not file_name.endswith(".pdf"):
+                    file_name += ".pdf"
+                file_path = os.path.join(TEMP_FOLDER, file_name)
+                with open(file_path, 'wb') as pdf_file:
+                    pdf_file.write(await response.read())
+                print(f"Downloaded: {file_name}")
+                DOWNLOADED_FILES_COUNT += 1
+                return file_path
+            else:
+                print(f"Skipping {url}, not a PDF file.")
+                return None
     except Exception as e:
         print(f"An error occurred while downloading {url}: {e}")
     return None
@@ -392,7 +391,7 @@ def rename_and_move_file(file_path, destination, cas, name, provider):
 
 
 # Scrape URLs from webpage
-def scrape_urls(url, base_url, timeout=10):
+async def scrape_urls(session, url, base_url, timeout=10):
     """
     Scrape URLs from a webpage.
 
@@ -405,25 +404,21 @@ def scrape_urls(url, base_url, timeout=10):
         list: A list of scraped URLs.
     """
     try:
-        response = requests.get(url, timeout=timeout)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.content, "html.parser")
-        links = [
-            urljoin(base_url, link['href'])
-            for link in soup.find_all("a", href=True)
-        ]
-        return links
-    except requests.Timeout:
-        print(f"Timeout occurred while scraping links from: {url}")
-    except requests.HTTPError as e:
-        print(f"Failed to scrape links from {url}, HTTP error: {e}")
+        async with session.get(url, timeout=timeout) as response: 
+            response.raise_for_status()
+            soup = BeautifulSoup(await response.text(), "html.parser")
+            links = [
+                urljoin(base_url, link['href'])
+                for link in soup.find_all("a", href=True)
+            ]
+            return links
     except Exception as e:
         print(f"An error occurred while scraping links from {url}: {e}")
     return []
 
 
 # Find PDFs recursively
-def find_pdfs(url, depth=2, base_url=None, cas=None, name=None):
+async def find_pdfs(session, url, depth=2, base_url=None, cas=None, name=None):
     """
     Recursively find PDFs from a URL, download and verify them.
 
@@ -463,8 +458,8 @@ def find_pdfs(url, depth=2, base_url=None, cas=None, name=None):
     if not base_url:
         base_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
 
-    if is_pdf(url):
-        file_path = download_pdf(url, TEMP_FOLDER)
+    if is_pdf( url):
+        file_path = await download_pdf(session, url)
         if file_path:
             verification_status = verify_pdf(
                 file_path, cas, name)  # check the verification status
@@ -490,13 +485,13 @@ def find_pdfs(url, depth=2, base_url=None, cas=None, name=None):
                 # Delete unnecessary files
                 os.remove(file_path)
     else:
-        links = scrape_urls(url, base_url)
+        links = await scrape_urls(session, url, base_url)
         for link in links:
-            find_pdfs(link, depth - 1, base_url, cas, name)
+            await find_pdfs(session, link, depth - 1, base_url, cas, name)
 
 
 # Search Google for MSDS
-def scout(cas, name, max_search_results=10):
+async def scout(cas, name, max_search_results=10):
     """
     Search for Material Safety Data Sheets (MSDS) using Google and process the results.
 
@@ -514,15 +509,20 @@ def scout(cas, name, max_search_results=10):
     search_results = search(query,
                             num=max_search_results,
                             stop=max_search_results)
-    for result in search_results:
-        print(f"Google search result: {result}")
-        find_pdfs(result, depth=2, base_url=None, cas=cas, name=name)
+    async with aiohttp.ClientSession() as session: 
+        for result in search_results:
+            print(f"Google search result: {result}")
+            try : 
+                await find_pdfs(session, result, depth=2, base_url=None, cas=cas, name=name)
+            except Exception as e: 
+                print(f"An error occurred while searching {result}: {e}")
     report_in_json = save_report()
     return report_in_json
 
 
 # cas - 106-38-7
 # name - Benzene, 1-bromo-4-methyl-
+
 '''
   Modifications done : 
   1. Log url done 

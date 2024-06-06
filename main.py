@@ -23,9 +23,9 @@ async def run_scout(cas_or_name):
 	match = re.match(cas_pattern, cas_or_name)
 
 	if bool(match):
-		response = scout(cas=cas_or_name, name=None)
+		response = await scout(cas=cas_or_name, name=None)
 	else:
-		response = scout(cas=None, name=cas_or_name)
+		response = await scout(cas=None, name=cas_or_name)
 
 	return JSONResponse(content=response)
 
