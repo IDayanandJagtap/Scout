@@ -420,7 +420,7 @@ async def find_pdfs(session,
                     base_url=None,
                     cas=None,
                     name=None,
-                    report_list=[]):
+                    config_params={}):
     """
     Recursively find PDFs from a URL, download and verify them.
 
@@ -430,7 +430,17 @@ async def find_pdfs(session,
         base_url (str, optional): The base URL for resolving relative links. Defaults to None.
         cas_or_name (str, optional): The CAS number or element name for verification. Defaults to None.
     """
-    global DOWNLOADED_FILES_COUNT, URL_VISIT_COUNT, DOMAIN_VISIT_COUNT
+
+    # extract params
+    DOWNLOADED_FILES_COUNT = config_params.get("DOWNLODED_FILES_COUNT", 0)
+    DOWNLOAD_LIMIT = config_params.get("download_limit", 0)
+    URL_VISIT_COUNT = config_params.get("url_visit_count", {})
+    DOMAIN_VISIT_COUNT = config_params.get("domain_visit_count", {})
+    MAX_URL_VISITS = config_params.get("max_url_visits", 0)
+    MAX_DOMAIN_VISITS = config_params.get("max_domain_visits", 0)
+    REPORT_LIST = config_params.get("report_list", [])
+
+    # Depth check and stop when limit exceeded
     if depth <= 0 or DOWNLOADED_FILES_COUNT >= DOWNLOAD_LIMIT:
         return
     if any(skip_url in url.lower() for skip_url in SKIP_URLS):
@@ -473,14 +483,14 @@ async def find_pdfs(session,
                 new_file_path = rename_and_move_file(file_path, PDFS_FOLDER,
                                                      cas, name, provider_name)
                 if new_file_path:
-                    add_report(report_list, cas, name, new_file_path, True,
+                    add_report(REPORT_LIST, cas, name, new_file_path, True,
                                provider_name, url)
 
             elif verification_status == "similar":
                 print(
                     f"Verification status: {file_path} may be the required MSDS"
                 )
-                add_report(report_list, cas, name, file_path, False,
+                add_report(REPORT_LIST, cas, name, file_path, False,
                            provider_name, url)
 
             else:
@@ -490,8 +500,17 @@ async def find_pdfs(session,
     else:
         links = await scrape_urls(session, url, base_url)
         for link in links:
+            params = {
+                "downloaded_files_count": DOWNLOADED_FILES_COUNT,
+                "download_limit": DOWNLOAD_LIMIT,
+                "url_visit_count": URL_VISIT_COUNT,
+                "domain_visit_count": DOMAIN_VISIT_COUNT,
+                "max_url_visits": MAX_URL_VISITS,
+                "max_domain_visits": MAX_DOMAIN_VISITS,
+                "report_list": REPORT_LIST
+            }
             await find_pdfs(session, link, depth - 1, base_url, cas, name,
-                            report_list)
+                            params)
 
 
 # Search Google for MSDS
@@ -520,13 +539,24 @@ async def scout(cas, name, max_search_results=10):
         for result in search_results:
             print(f"Google search result: {result}")
             try:
+                # create params
+                config_params = {
+                    "report_list": report_list,
+                    "url_visit_count": {},
+                    "domain_visit_count": {},
+                    "max_url_visits": 5,
+                    "max_domain_visits": 10,
+                    "download_limit": 5,
+                    "downloaded_files_count": 0,
+                }
+
                 await find_pdfs(session,
                                 result,
                                 depth=2,
                                 base_url=None,
                                 cas=cas,
                                 name=name,
-                                report_list=report_list)
+                                config_params=config_params)
             except Exception as e:
                 print(f"An error occurred while searching {result}: {e}")
     report_in_json = save_report(report_list)
