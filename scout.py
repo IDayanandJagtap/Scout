@@ -11,7 +11,6 @@ import fitz  # PyMuPDF
 import requests
 from bs4 import BeautifulSoup
 from googlesearch import search
-import asyncio
 import aiohttp
 
 # Directories setup
@@ -168,25 +167,22 @@ DOMAIN_VISIT_COUNT = {}
 MAX_URL_VISITS = 5
 MAX_DOMAIN_VISITS = 5
 
-# Global report list
-REPORT_LIST = []
-
 # Limit for downloading files
 DOWNLOAD_LIMIT = 5
 DOWNLOADED_FILES_COUNT = 0
 
 
 # Save report to JSON file
-def save_report():
+def save_report(report_list):
     """
     Save the global report list to a JSON file in the logs directory.
 
     The report includes details of each processed file such as the CAS number or name,
     filename, download status, and provider.
     """
-    if REPORT_LIST:
+    if report_list:
         try:
-            json_string = json.dumps(REPORT_LIST, indent=4)
+            json_string = json.dumps(report_list, indent=4)
             report_filename = datetime.now().strftime(
                 "%Y-%m-%d_%H-%M-%S") + ".json"
             report_filename = os.path.join(LOGS_FOLDER, report_filename)
@@ -203,7 +199,7 @@ def save_report():
 
 
 # Add report entry
-def add_report(cas, name, filepath, verified, provider, url):
+def add_report(report_list, cas, name, filepath, verified, provider, url):
     """
     Add an entry to the global report list.
 
@@ -222,11 +218,11 @@ def add_report(cas, name, filepath, verified, provider, url):
         "filepath": filepath,
         "url": url
     }
-    REPORT_LIST.append(report)
+    report_list.append(report)
 
 
 # Check if URL is a PDF
-def is_pdf( url):
+def is_pdf(url):
     """
     Check if a URL points to a PDF file.
 
@@ -265,7 +261,7 @@ async def download_pdf(session, url):
     """
     global DOWNLOADED_FILES_COUNT
     try:
-        async with session.get(url,timeout=10) as response: 
+        async with session.get(url, timeout=10) as response:
             response.raise_for_status()
             if response.headers.get('content-type') == 'application/pdf':
                 file_name = url.split("/")[-1]
@@ -404,7 +400,7 @@ async def scrape_urls(session, url, base_url, timeout=10):
         list: A list of scraped URLs.
     """
     try:
-        async with session.get(url, timeout=timeout) as response: 
+        async with session.get(url, timeout=timeout) as response:
             response.raise_for_status()
             soup = BeautifulSoup(await response.text(), "html.parser")
             links = [
@@ -418,7 +414,13 @@ async def scrape_urls(session, url, base_url, timeout=10):
 
 
 # Find PDFs recursively
-async def find_pdfs(session, url, depth=2, base_url=None, cas=None, name=None):
+async def find_pdfs(session,
+                    url,
+                    depth=2,
+                    base_url=None,
+                    cas=None,
+                    name=None,
+                    report_list=[]):
     """
     Recursively find PDFs from a URL, download and verify them.
 
@@ -458,7 +460,7 @@ async def find_pdfs(session, url, depth=2, base_url=None, cas=None, name=None):
     if not base_url:
         base_url = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
 
-    if is_pdf( url):
+    if is_pdf(url):
         file_path = await download_pdf(session, url)
         if file_path:
             verification_status = verify_pdf(
@@ -471,14 +473,15 @@ async def find_pdfs(session, url, depth=2, base_url=None, cas=None, name=None):
                 new_file_path = rename_and_move_file(file_path, PDFS_FOLDER,
                                                      cas, name, provider_name)
                 if new_file_path:
-                    add_report(cas, name, new_file_path, True, provider_name,
-                               url)
+                    add_report(report_list, cas, name, new_file_path, True,
+                               provider_name, url)
 
             elif verification_status == "similar":
                 print(
                     f"Verification status: {file_path} may be the required MSDS"
                 )
-                add_report(cas, name, file_path, False, provider_name, url)
+                add_report(report_list, cas, name, file_path, False,
+                           provider_name, url)
 
             else:
                 print(f"Verification status: {file_path} is not a MSDS")
@@ -487,7 +490,8 @@ async def find_pdfs(session, url, depth=2, base_url=None, cas=None, name=None):
     else:
         links = await scrape_urls(session, url, base_url)
         for link in links:
-            await find_pdfs(session, link, depth - 1, base_url, cas, name)
+            await find_pdfs(session, link, depth - 1, base_url, cas, name,
+                            report_list)
 
 
 # Search Google for MSDS
@@ -504,25 +508,33 @@ async def scout(cas, name, max_search_results=10):
         print("No input provided. Exiting.")
         return
 
+    # Report list :
+    report_list = []
+
     query = f"download msds of {cas or name}"
     print(f"Searching Google for: {query}")
     search_results = search(query,
                             num=max_search_results,
                             stop=max_search_results)
-    async with aiohttp.ClientSession() as session: 
+    async with aiohttp.ClientSession() as session:
         for result in search_results:
             print(f"Google search result: {result}")
-            try : 
-                await find_pdfs(session, result, depth=2, base_url=None, cas=cas, name=name)
-            except Exception as e: 
+            try:
+                await find_pdfs(session,
+                                result,
+                                depth=2,
+                                base_url=None,
+                                cas=cas,
+                                name=name,
+                                report_list=report_list)
+            except Exception as e:
                 print(f"An error occurred while searching {result}: {e}")
-    report_in_json = save_report()
+    report_in_json = save_report(report_list)
     return report_in_json
 
 
 # cas - 106-38-7
 # name - Benzene, 1-bromo-4-methyl-
-
 '''
   Modifications done : 
   1. Log url done 
