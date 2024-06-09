@@ -1,13 +1,14 @@
 import os
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 import re
 from scout import scout
 from scout_excel import process_excel
 
 app = FastAPI()
 
-# config
+# Excel file upload directory
 UPLOAD_DIR = "./uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -15,25 +16,31 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 #Home route
 @app.get("/")
 def home():
-	return {"message": "Welcome to the Scout Crawler API"}
+	return JSONResponse(status_code= HTTP_200_OK ,content={
+	    "message": "Welcome to the Scout Crawler API. Please check the docs here"
+	})
 
 
 # Scout route
 @app.get("/scout/{cas_or_name}")
-async def run_scout(cas_or_name):
+async def run_scout(cas_or_name: str):
 	if cas_or_name is None:
-		return {"error": "No input provided."}
+		raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="No input provided.")
 
 	# identify cas or name
 	cas_pattern = r'^\d{2,7}-\d{2}-\d$'
 	match = re.match(cas_pattern, cas_or_name)
 
-	if bool(match):
-		response = await scout(cas=cas_or_name, name=None)
-	else:
-		response = await scout(cas=None, name=cas_or_name)
+	try:
+		if match:
+			response = await scout(cas=cas_or_name, name=None)
+		else:
+			response = await scout(cas=None, name=cas_or_name)
 
-	return JSONResponse(content=response)
+		return JSONResponse(status_code=HTTP_200_OK, content=response)
+	except Exception as e:
+		return JSONResponse(status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+		                    content={"error": str(e)})
 
 
 # Scout with excel
@@ -58,10 +65,15 @@ async def run_scout_excel(file: UploadFile):
 		# process excel file
 		await process_excel(file_location)
 
-		return {"filename": file.filename}
+		return JSONResponse(status_code=HTTP_200_OK,
+		                    content={"message": "The excel file is processed."})
 
 	except Exception as e:
-		# report to the user and delete the created file
-		os.remove(file_location)
+		# report to the user
 		print("An occured during excel processing : ", str(e))
-		return {"error": str(e)}
+		return JSONResponse(status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+		                    content={"error": str(e)})
+
+	finally:
+		#delete the created file
+		os.remove(file_location)

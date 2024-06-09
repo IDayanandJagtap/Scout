@@ -1,7 +1,3 @@
-"""
-Scout for accepting input as CAS number or element name and perfrom strict validation process
-"""
-
 import os
 import re
 from urllib.parse import urljoin, urlparse
@@ -161,24 +157,21 @@ SKIP_URLS = set([
     "scribd",
 ])
 
-# URL visit count dictionary
-URL_VISIT_COUNT = {}
-DOMAIN_VISIT_COUNT = {}
-MAX_URL_VISITS = 5
-MAX_DOMAIN_VISITS = 5
 
-# Limit for downloading files
-DOWNLOAD_LIMIT = 5
-DOWNLOADED_FILES_COUNT = 0
 
 
 # Save report to JSON file
 def save_report(report_list):
     """
     Save the global report list to a JSON file in the logs directory.
-
     The report includes details of each processed file such as the CAS number or name,
     filename, download status, and provider.
+
+    Params: 
+        report_list(list) : A list of dictionary containing the necessary info
+
+    Return: 
+        The json report.
     """
     if report_list:
         try:
@@ -204,9 +197,11 @@ def add_report(report_list, cas, name, filepath, verified, provider, url):
     Add an entry to the global report list.
 
     Params:
-        cas_or_name (str): The CAS number or element name.
-        filename (str): The name of the file.
-        downloaded (bool): Whether the file was successfully downloaded.
+        report_list (list) : The new entry(report) to be appended to this list.
+        cas (str) : The CAS number.
+        name (str): The Element name.
+        filepath (str): The path of the file.
+        verified (bool): Is the file strictly verified.
         provider (str): The provider or source of the file.
         url (str) : The url from which the pdf is downloaded.
     """
@@ -253,13 +248,13 @@ async def download_pdf(session, url):
     Download a PDF file from a URL and save it to the specified folder.
 
     Params:
+        session (aiohttp.ClientSession): The session to use for the download.
         url (str): The URL of the PDF file.
-        folder_path (str): The folder path to save the PDF file.
 
     Returns:
         str: The file path of the downloaded PDF, or None if the download failed.
     """
-    global DOWNLOADED_FILES_COUNT
+    
     try:
         async with session.get(url, timeout=10) as response:
             response.raise_for_status()
@@ -268,10 +263,11 @@ async def download_pdf(session, url):
                 if not file_name.endswith(".pdf"):
                     file_name += ".pdf"
                 file_path = os.path.join(TEMP_FOLDER, file_name)
+                
                 with open(file_path, 'wb') as pdf_file:
                     pdf_file.write(await response.read())
                 print(f"Downloaded: {file_name}")
-                DOWNLOADED_FILES_COUNT += 1
+                
                 return file_path
             else:
                 print(f"Skipping {url}, not a PDF file.")
@@ -293,14 +289,12 @@ def extract_text_from_pdf(pdf_path):
         str: The extracted text content, or None if extraction failed.
     """
     try:
-        pageno = 1
         doc = fitz.open(pdf_path)
         text = ""
-        for page in doc:
+        for pageno,page in enumerate(doc, start=1):
             if pageno > 5:  # read only first 5 pages
                 break
             text += page.get_text()
-            pageno += 1
         doc.close()
         return text
     except Exception as e:
@@ -330,10 +324,13 @@ def verify_pdf(file_path, cas=None, name=None):
 
     Params:
         file_path (str): The file path of the PDF.
-        cas_or_name (str): The CAS number or element name to verify against.
+        cas (str) : The CAS number.
+        name (str): The Element name to verify against.
 
     Returns:
-        bool: True if both patterns are found in the PDF content, False otherwise.
+        "same" : if the PDF contains the specified CAS number and the phrase "safety data sheet".
+        "similar" : if the PDF contains a part of the element name and the phrase "safety data sheet". 
+         False otherwise.
     """
     text = extract_text_from_pdf(file_path)
     if text is None:
@@ -392,6 +389,7 @@ async def scrape_urls(session, url, base_url, timeout=10):
     Scrape URLs from a webpage.
 
     Params:
+        session (aiohttp.ClientSession): The session to use for making an async http request.
         url (str): The URL of the webpage to scrape.
         base_url (str): The base URL for resolving relative links.
         timeout (int, optional): The timeout for the request in seconds. Defaults to 10.
@@ -416,7 +414,7 @@ async def scrape_urls(session, url, base_url, timeout=10):
 # Find PDFs recursively
 async def find_pdfs(session,
                     url,
-                    depth=2,
+                    depth=3,
                     base_url=None,
                     cas=None,
                     name=None,
@@ -425,13 +423,16 @@ async def find_pdfs(session,
     Recursively find PDFs from a URL, download and verify them.
 
     Params:
+        session (aiohttp.ClientSession): The session to use for making an async http request.
         url (str): The URL to start searching from.
-        depth (int, optional): The depth of recursion. Defaults to 2.
+        depth (int, optional): The depth of recursion. Defaults to 3.
         base_url (str, optional): The base URL for resolving relative links. Defaults to None.
-        cas_or_name (str, optional): The CAS number or element name for verification. Defaults to None.
+        cas (str) : The CAS number. Defaults to None.
+        name (str): The Element name for verification. Defaults to None.
+        config_params (dict) : Contains required config params. 
     """
 
-    # extract params
+    # extract config params
     DOWNLOADED_FILES_COUNT = config_params.get("DOWNLODED_FILES_COUNT", 0)
     DOWNLOAD_LIMIT = config_params.get("download_limit", 0)
     URL_VISIT_COUNT = config_params.get("url_visit_count", {})
@@ -443,6 +444,8 @@ async def find_pdfs(session,
     # Depth check and stop when limit exceeded
     if depth <= 0 or DOWNLOADED_FILES_COUNT >= DOWNLOAD_LIMIT:
         return
+
+    # check whether to skip the current url
     if any(skip_url in url.lower() for skip_url in SKIP_URLS):
         print(f"Skipped: {url}")
         return
@@ -476,6 +479,7 @@ async def find_pdfs(session,
             verification_status = verify_pdf(
                 file_path, cas, name)  # check the verification status
             provider_name = base_url.split("/")[2]  # get the provider name
+            DOWNLOADED_FILES_COUNT += 1 # increment the download count
             if verification_status == "same":
                 print(
                     f"Verification status: {file_path} is probably the required MSDS"
@@ -495,8 +499,8 @@ async def find_pdfs(session,
 
             else:
                 print(f"Verification status: {file_path} is not a MSDS")
-                # Delete unnecessary files
-                os.remove(file_path)
+                os.remove(file_path) # Delete the unnecessary files
+                DOWNLOADED_FILES_COUNT -= 1 # decrement the download count
     else:
         links = await scrape_urls(session, url, base_url)
         for link in links:
@@ -519,8 +523,12 @@ async def scout(cas, name, max_search_results=10):
     Search for Material Safety Data Sheets (MSDS) using Google and process the results.
 
     Params:
-        cas_or_name (str): The CAS number or element name to search for.
+        cas (str) : The CAS number to search for. 
+        name (str): The Element name to search for.
         max_search_results (int, optional): The maximum number of search results to process. Defaults to 10.
+
+    Returns : 
+        json_report (json) : It returns the generated report as json string.
     """
 
     if cas is None and name is None:
@@ -530,11 +538,13 @@ async def scout(cas, name, max_search_results=10):
     # Report list :
     report_list = []
 
+    # create query and do a google search
     query = f"download msds of {cas or name}"
     print(f"Searching Google for: {query}")
     search_results = search(query,
                             num=max_search_results,
                             stop=max_search_results)
+    # Create async session
     async with aiohttp.ClientSession() as session:
         for result in search_results:
             print(f"Google search result: {result}")
@@ -559,6 +569,9 @@ async def scout(cas, name, max_search_results=10):
                                 config_params=config_params)
             except Exception as e:
                 print(f"An error occurred while searching {result}: {e}")
+
+    # save report 
+    # save report 
     report_in_json = save_report(report_list)
     return report_in_json
 
@@ -566,19 +579,10 @@ async def scout(cas, name, max_search_results=10):
 # cas - 106-38-7
 # name - Benzene, 1-bromo-4-methyl-
 '''
-  Modifications done : 
-  1. Log url done 
-  2. Flexible + Strict combination
-  3. Improve report
 
   Next :
-  2. Folder names (verified and unverified)
-  3. selenium
-  4. Improve static checks
+  1. Generate proper file path.
+  2. selenium
 
-  **** Include the file path to the pdfs in the response (depends on the storage location)
-  *** Storage 
-  *** Storage redundancy issues and two user thing
-  *** Extensive compatibility with platform
 
 '''

@@ -1,4 +1,8 @@
+
+
 1. Make documentation
+	- add route to access static files
+	
 2. Have a look at scout.py once 
 3. Clean and optimise scout_excel.py 
 
@@ -8,3 +12,7 @@
 
 5. Excel file details
 	- column should contain ("CAS", "ChemName", "ID")
+
+
+
+6. Once the request is fulfilled we have to delete the files 
