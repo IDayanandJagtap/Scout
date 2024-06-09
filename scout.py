@@ -158,8 +158,6 @@ SKIP_URLS = set([
 ])
 
 
-
-
 # Save report to JSON file
 def save_report(report_list):
     """
@@ -175,13 +173,17 @@ def save_report(report_list):
     """
     if report_list:
         try:
-            json_string = json.dumps(report_list, indent=4)
-            report_filename = datetime.now().strftime(
+            json_string = json.dumps(
+                report_list, indent=4)  # convert the list to json string
+            report_filename = datetime.now(
+            ).strftime(  # create a report file name
                 "%Y-%m-%d_%H-%M-%S") + ".json"
             report_filename = os.path.join(LOGS_FOLDER, report_filename)
+            # write the json string in the report file
             with open(report_filename, "w") as report_file:
                 report_file.write(json_string)
             print(f"Scout report generated, check {report_filename}")
+            # return the json string
             return json.loads(json_string)
         except Exception as e:
             print(f"An error occurred while generating the report: {e}")
@@ -254,7 +256,7 @@ async def download_pdf(session, url):
     Returns:
         str: The file path of the downloaded PDF, or None if the download failed.
     """
-    
+
     try:
         async with session.get(url, timeout=10) as response:
             response.raise_for_status()
@@ -263,11 +265,11 @@ async def download_pdf(session, url):
                 if not file_name.endswith(".pdf"):
                     file_name += ".pdf"
                 file_path = os.path.join(TEMP_FOLDER, file_name)
-                
+
                 with open(file_path, 'wb') as pdf_file:
                     pdf_file.write(await response.read())
                 print(f"Downloaded: {file_name}")
-                
+
                 return file_path
             else:
                 print(f"Skipping {url}, not a PDF file.")
@@ -291,7 +293,7 @@ def extract_text_from_pdf(pdf_path):
     try:
         doc = fitz.open(pdf_path)
         text = ""
-        for pageno,page in enumerate(doc, start=1):
+        for pageno, page in enumerate(doc, start=1):
             if pageno > 5:  # read only first 5 pages
                 break
             text += page.get_text()
@@ -400,7 +402,9 @@ async def scrape_urls(session, url, base_url, timeout=10):
     try:
         async with session.get(url, timeout=timeout) as response:
             response.raise_for_status()
-            soup = BeautifulSoup(await response.text(), "html.parser")
+            soup = BeautifulSoup(await response.text(),
+                                 "html.parser")  # Parse the html from the url
+            # find hrefs from the html
             links = [
                 urljoin(base_url, link['href'])
                 for link in soup.find_all("a", href=True)
@@ -479,18 +483,19 @@ async def find_pdfs(session,
             verification_status = verify_pdf(
                 file_path, cas, name)  # check the verification status
             provider_name = base_url.split("/")[2]  # get the provider name
-            DOWNLOADED_FILES_COUNT += 1 # increment the download count
-            if verification_status == "same":
+            DOWNLOADED_FILES_COUNT += 1  # increment the download count
+            if verification_status == "same":  # strict validation
                 print(
                     f"Verification status: {file_path} is probably the required MSDS"
                 )
-                new_file_path = rename_and_move_file(file_path, PDFS_FOLDER,
-                                                     cas, name, provider_name)
+                new_file_path = rename_and_move_file(
+                    file_path, PDFS_FOLDER, cas, name,
+                    provider_name)  # move file to the verified folder
                 if new_file_path:
                     add_report(REPORT_LIST, cas, name, new_file_path, True,
                                provider_name, url)
 
-            elif verification_status == "similar":
+            elif verification_status == "similar":  # flexible validation
                 print(
                     f"Verification status: {file_path} may be the required MSDS"
                 )
@@ -499,8 +504,8 @@ async def find_pdfs(session,
 
             else:
                 print(f"Verification status: {file_path} is not a MSDS")
-                os.remove(file_path) # Delete the unnecessary files
-                DOWNLOADED_FILES_COUNT -= 1 # decrement the download count
+                os.remove(file_path)  # Delete the unnecessary files
+                DOWNLOADED_FILES_COUNT -= 1  # decrement the download count
     else:
         links = await scrape_urls(session, url, base_url)
         for link in links:
@@ -514,7 +519,7 @@ async def find_pdfs(session,
                 "report_list": REPORT_LIST
             }
             await find_pdfs(session, link, depth - 1, base_url, cas, name,
-                            params)
+                            params)  # recursive call to find_pdfs
 
 
 # Search Google for MSDS
@@ -570,8 +575,7 @@ async def scout(cas, name, max_search_results=10):
             except Exception as e:
                 print(f"An error occurred while searching {result}: {e}")
 
-    # save report 
-    # save report 
+    # save report
     report_in_json = save_report(report_list)
     return report_in_json
 
