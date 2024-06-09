@@ -16,16 +16,20 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 #Home route
 @app.get("/")
 def home():
-	return JSONResponse(status_code= HTTP_200_OK ,content={
-	    "message": "Welcome to the Scout Crawler API. Please check the docs here"
-	})
+	return JSONResponse(
+	    status_code=HTTP_200_OK,
+	    content={
+	        "message":
+	        "Welcome to the Scout Crawler API. Please check the docs here"
+	    })
 
 
 # Scout route
 @app.get("/scout/{cas_or_name}")
 async def run_scout(cas_or_name: str):
 	if cas_or_name is None:
-		raise HTTPException(status_code=HTTP_400_BAD_REQUEST, detail="No input provided.")
+		raise HTTPException(status_code=HTTP_400_BAD_REQUEST,
+		                    detail="No input provided.")
 
 	# identify cas or name
 	cas_pattern = r'^\d{2,7}-\d{2}-\d$'
@@ -49,12 +53,14 @@ async def run_scout_excel(file: UploadFile):
 	file_location = ""
 	try:
 		if file is None:
-			return {"error": "Excel file expected."}
+			raise HTTPException(status_code=HTTP_400_BAD_REQUEST,
+			                    detail="No input provided. Excel file expected!")
 
 		ext = file.filename.split(".")[-1]
-
 		if ext != "xlsx":
-			return {"error": f"Received {ext} file, excel file expected."}
+			return JSONResponse(
+			    status_code=HTTP_400_BAD_REQUEST,
+			    content={"error": f"Received {ext} file, excel file expected."})
 
 		# save file to the uploads directory
 		file_location = os.path.join(UPLOAD_DIR, file.filename)
@@ -62,7 +68,7 @@ async def run_scout_excel(file: UploadFile):
 			contents = await file.read()
 			f.write(contents)
 
-		# process excel file
+		# process excel file (scout the excel file)
 		await process_excel(file_location)
 
 		return JSONResponse(status_code=HTTP_200_OK,
@@ -75,5 +81,5 @@ async def run_scout_excel(file: UploadFile):
 		                    content={"error": str(e)})
 
 	finally:
-		#delete the created file
+		# Delete the created file
 		os.remove(file_location)
