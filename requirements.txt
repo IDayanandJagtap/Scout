@@ -2,7 +2,6 @@ PyMuPDF
 requests
 beautifulsoup4
 google
-asyncio
 aiohttp
 fastapi
 uvicorn

@@ -9,7 +9,6 @@ import requests
 from bs4 import BeautifulSoup
 from googlesearch import search
 import aiohttp
-import asyncio
 
 PDFS_FOLDER = "./pdfs"
 TEMP_FOLDER = "./temp"
