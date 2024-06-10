@@ -388,5 +388,4 @@ async def process_excel(file_path):
 			    no_of_downloads=msds_count)  # Save the status to report file(.csv)
 
 
-file_path = "del_check.xlsx"
-asyncio.run(process_excel(file_path))
+
