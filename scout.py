@@ -207,6 +207,9 @@ def add_report(report_list, cas, name, filepath, verified, provider, url):
         provider (str): The provider or source of the file.
         url (str) : The url from which the pdf is downloaded.
     """
+    # Modify the filepath to access the file via static route
+    filepath = filepath[2:]  # ./verified/filename becomes verfied/filename
+    # Append the new entry to the report list
     report = {
         "cas": cas,
         "name": name,
