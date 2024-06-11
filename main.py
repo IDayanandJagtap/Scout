@@ -1,12 +1,22 @@
 import os
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 import re
 from scout import scout
 from scout_excel import process_excel
 
 app = FastAPI()
+
+#cors
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 # Excel file upload directory
 UPLOAD_DIR = "./uploads"
