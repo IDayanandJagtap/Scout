@@ -2,6 +2,7 @@ import os
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
 import re
 from scout import scout
@@ -93,3 +94,11 @@ async def run_scout_excel(file: UploadFile):
 	finally:
 		# Delete the created file
 		os.remove(file_location)
+
+
+# static file serving
+# Mount the static files directory
+app.mount("/verified", StaticFiles(directory="verified"), name="verified")
+app.mount("/unverified",
+          StaticFiles(directory="unverified"),
+          name="unverified")
