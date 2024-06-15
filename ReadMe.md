@@ -2,7 +2,7 @@
 
 ## Overview
 
-Scout is a Python-based automation tool designed to download, verify, and process Material Safety Data Sheets (MSDS) from PDFs. It generates reports based on data from an Excel file. The tool can scrape websites for PDF files, verify their content, and organize them in a structured manner. It also logs the process and generates a JSON report.
+Scout is a Python-based automation tool designed to download, verify, and process Material Safety Data Sheets (MSDS) from PDFs. The tool can scrape websites for PDF files, verify their content, and organize them in a structured manner. It also logs the process and generates a JSON report.
 
 ## Features
 
@@ -11,6 +11,55 @@ Scout is a Python-based automation tool designed to download, verify, and proces
 -   **File Management**: Renames and moves verified PDFs to designated folders.
 -   **Web Scraping**: Recursively scrapes websites for PDF links.
 -   **JSON Report Generation**: Generates a detailed report of the processed files.
+
+## API usage
+Scout provides an API service to access it's functionality. 
+
+
+### 1. Search for MSDS
+```
+https://scout-api.azurewebsites.net/scout/CAS_OR_NAME
+```
+- **Method** : `Get`
+- **Query (CAS_OR_NAME)** : You need to provide a valid CAS Number or the Chemical Name. Example
+    ```
+    https://scout-api.azurewebsites.net/scout/106-38-7
+    https://scout-api.azurewebsites.net/scout/methanol
+    ```
+- **Response**: A JSON response with the entire search detials is provided. Example
+  
+    ```
+    [
+        {
+            "cas": null,
+            "name": "methanol",
+            "provider": "beta-static.fishersci.com",
+            "verified": true,
+            "filepath": "verified/methanol_beta-static.fishersci.com_3.pdf",
+            "url": "https://beta-static.fishersci.com/content/dam/fishersci/en_US/documents/programs/education/regulatory-documents/sds/chemicals/chemicals-m/S25426A.pdf"
+        }, ...
+    ]
+    ```
+  
+
+### 2.Access files :
+To access the downloaded files use the following api
+```
+https://scout-api.azurewebsites.net/FILEPATH
+```
+- **Method** : `Get`
+- **Query (FILEPATH)** : The path of the file. It is present in the response as `filepath`. Example
+
+    ```
+    https://scout-api.azurewebsites.net/verified/methanol_beta-static.fishersci.com_3.pdf
+    ```
+<br>
+
+----------------
+
+<br>
+
+# Local Installation:
 
 ## Requirements
 
