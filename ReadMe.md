@@ -42,7 +42,7 @@ https://scout-api.azurewebsites.net/scout/CAS_OR_NAME
     ```
   
 
-### 2.Access files :
+### 2. Access files :
 To access the downloaded files use the following api
 ```
 https://scout-api.azurewebsites.net/FILEPATH
@@ -53,6 +53,7 @@ https://scout-api.azurewebsites.net/FILEPATH
     ```
     https://scout-api.azurewebsites.net/verified/methanol_beta-static.fishersci.com_3.pdf
     ```
+
 <br>
 
 ----------------
@@ -69,6 +70,11 @@ https://scout-api.azurewebsites.net/FILEPATH
     -   `requests`
     -   `beautifulsoup4`
     -   `googlesearch-python`
+    - `aiohttp`
+    - `fastapi`
+    - `uvicorn`
+    - `pandas`
+    - `openpyxl`
 
 You can install the required packages using:
 
@@ -96,8 +102,9 @@ pip install -r requirements.txt
 -   To run scout from command line run
 
 ```
-python scout_strict.py
+python main.py
 ```
+It will start a local api server. You can follow the API Usage section for more details.
 
 ## Logging
 

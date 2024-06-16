@@ -1,4 +1,5 @@
 import os
+import uvicorn
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,7 +32,7 @@ def home():
 	    status_code=HTTP_200_OK,
 	    content={
 	        "message":
-	        "Welcome to the Scout Crawler API. Please check the docs here"
+	        "Welcome to the Scout Crawler API. Please check the docs <a href='https://github.com/IDayanandJagtap/scout'>here</a>"
 	    })
 
 
@@ -102,3 +103,7 @@ app.mount("/verified", StaticFiles(directory="verified"), name="verified")
 app.mount("/unverified",
           StaticFiles(directory="unverified"),
           name="unverified")
+
+# Run the app
+if __name__ == "__main__":
+	uvicorn.run("main:app", host="0.0.0.0", port=8000, log_level="info")
