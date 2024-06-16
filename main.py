@@ -1,7 +1,7 @@
 import os
 import uvicorn
 from fastapi import FastAPI, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.status import HTTP_200_OK, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
@@ -28,12 +28,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 #Home route
 @app.get("/")
 def home():
-	return JSONResponse(
-	    status_code=HTTP_200_OK,
-	    content={
-	        "message":
-	        "Welcome to the Scout Crawler API. Please check the docs <a href='https://github.com/IDayanandJagtap/scout'>here</a>"
-	    })
+	content = "<html><head><title>Welcome to Scout API </title></head><body><p>Welcome to the Scout Crawler API. Please check the <a href='https://github.com/IDayanandJagtap/scout'>documentation</a> for more details.<p></body></html>"
+
+	return HTMLResponse(content)
 
 
 # Scout route
