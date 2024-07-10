@@ -18,13 +18,13 @@ Scout provides an API service to access it's functionality.
 
 ### 1. Search for MSDS
 ```
-https://scout-api.azurewebsites.net/scout/CAS_OR_NAME
+https://viridium-scout.azurewebsites.net/scout/CAS_OR_NAME
 ```
 - **Method** : `Get`
 - **Query (CAS_OR_NAME)** : You need to provide a valid CAS Number or the Chemical Name. Example
     ```
-    https://scout-api.azurewebsites.net/scout/106-38-7
-    https://scout-api.azurewebsites.net/scout/methanol
+    https://viridium-scout.azurewebsites.net/scout/106-38-7
+    https://viridium-scout.azurewebsites.net/scout/methanol
     ```
 - **Response**: A JSON response with the entire search detials is provided. Example
   
@@ -45,13 +45,13 @@ https://scout-api.azurewebsites.net/scout/CAS_OR_NAME
 ### 2. Access files :
 To access the downloaded files use the following api
 ```
-https://scout-api.azurewebsites.net/FILEPATH
+https://viridium-scout.azurewebsites.net/FILEPATH
 ```
 - **Method** : `Get`
 - **Query (FILEPATH)** : The path of the file. It is present in the response as `filepath`. Example
 
     ```
-    https://scout-api.azurewebsites.net/verified/methanol_beta-static.fishersci.com_3.pdf
+    https://viridium-scout.azurewebsites.net/verified/methanol_beta-static.fishersci.com.pdf
     ```
 
 <br>
