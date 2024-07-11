@@ -24,13 +24,22 @@ app.add_middleware(
 UPLOAD_DIR = "./uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
+#static routes
+app.mount("/public", StaticFiles(directory="public"), name="public")
 
-#Home route
-@app.get("/")
+# # Home route
+# @app.get("/")
+# def home():
+# 	content = "<html><head><title>Welcome to Scout API </title></head><body><p>Welcome to the Scout Crawler API. Please check the <a href='https://github.com/IDayanandJagtap/scout'>documentation</a> for more details.<p></body></html>"
+
+# 	return HTMLResponse(content)
+
+
+# UI route
+@app.get("/", response_class=HTMLResponse)
 def home():
-	content = "<html><head><title>Welcome to Scout API </title></head><body><p>Welcome to the Scout Crawler API. Please check the <a href='https://github.com/IDayanandJagtap/scout'>documentation</a> for more details.<p></body></html>"
-
-	return HTMLResponse(content)
+	with open("public/index.html") as f:
+		return f.read()
 
 
 # Scout route
@@ -62,14 +71,17 @@ async def run_scout_excel(file: UploadFile):
 	file_location = ""
 	try:
 		if file is None:
-			raise HTTPException(status_code=HTTP_400_BAD_REQUEST,
-			                    detail="No input provided. Excel file expected!")
+			raise HTTPException(
+			    status_code=HTTP_400_BAD_REQUEST,
+			    detail="No input provided. Excel file expected!")
 
 		ext = file.filename.split(".")[-1]
 		if ext != "xlsx":
 			return JSONResponse(
 			    status_code=HTTP_400_BAD_REQUEST,
-			    content={"error": f"Received {ext} file, excel file expected."})
+			    content={
+			        "error": f"Received {ext} file, excel file expected."
+			    })
 
 		# save file to the uploads directory
 		file_location = os.path.join(UPLOAD_DIR, file.filename)
@@ -80,8 +92,9 @@ async def run_scout_excel(file: UploadFile):
 		# process excel file (scout the excel file)
 		await process_excel(file_location)
 
-		return JSONResponse(status_code=HTTP_200_OK,
-		                    content={"message": "The excel file is processed."})
+		return JSONResponse(
+		    status_code=HTTP_200_OK,
+		    content={"message": "The excel file is processed."})
 
 	except Exception as e:
 		# report to the user

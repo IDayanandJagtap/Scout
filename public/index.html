@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="shortcut icon" href="/public/favicon.ico" type="image/x-icon">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<title>Scout | Viridium</title>
+
+	<style>
+		* {
+			transition: all 0.3s linear;
+			scroll-behavior: smooth;
+		}
+
+		input:valid {
+			background-color: white;
+			/* Ensure the background color remains white when input has a value and loses focus */
+		}
+
+		.response-link {
+			border: .5px solid #b4b4b4;
+			padding: 5px;
+			margin-top: 10px;
+			border-radius: 6px;
+		}
+	</style>
+</head>
+
+<body class="bg-[#f2f2f2]">
+
+	<header class="w-full flex items-center sticky top-0 z-10 gap-2 bg-white shadow-md py-2 px-3">
+		<img class="w-12" src="/public/assets/headerLogo.png" alt="Viridium logo">
+		<a href="/"><h1 class="text-3xl font-bold ">SCOUT</h1></a>
+	</header>
+
+	<div class="mt-8 mb-2 text-center p-4 lg:p-0">
+		<p class="text-sm text-gray-700">
+			Search for Material Safety Data Sheets (MSDS) by using the Chemical/Material Name or CAS number.
+		</p>
+	</div>
+
+	<div class="w-full flex justify-center p-5 gap-8">
+		<!-- Form and response section -->
+		<section class="w-full lg:w-2/5 flex flex-col justify-center lg:justify-start">
+
+			<!-- Form -->
+			<form class=" mx-auto w-full text-sm bg-white border border-slate-300  p-8 rounded-md shadow"
+				onsubmit="handleOnFormSubmit(event)">
+				<h1 class="text-2xl text-center font-semibold mb-5 ">Scout Search</h1>
+
+				<!-- Name -->
+				<div class="relative my-6 group ">
+					<input type="text" id="chemicalName" placeholder="Methanol"
+						class="peer placeholder-transparent  border-2 rounded-md w-full p-3 outline-none focus:border-[#149877]" />
+					<label id="chemicalName"
+						class="px-1.5 bg-white text-slate-500 text-xs absolute left-3 -top-[0.01rem] transform -translate-y-1/2 transition-all duration-300 peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-xs peer-focus:-top-[0.01rem] peer-focus:text-[#149877] peer-focus:text-xs">
+						Chemical/Material Name
+					</label>
+				</div>
+
+				<!-- Cas number -->
+				<div class="relative my-6 group ">
+					<input type="text" id="casNumber" placeholder="106-38-7"
+						class="peer placeholder-transparent bg-white border-2 rounded-md w-full p-3 outline-none focus:border-[#149877]" />
+					<label id="casNumber"
+						class="px-1.5 bg-white text-slate-500 text-xs absolute left-3 -top-[0.01rem] transform -translate-y-1/2 transition-all duration-300 peer-placeholder-shown:top-1/2 peer-placeholder-shown:text-xs peer-focus:-top-[0.01rem] peer-focus:text-[#149877] peer-focus:text-xs">
+						CAS Number
+					</label>
+				</div>
+
+				<!-- Buttons -->
+				<div class="flex justify-end gap-2">
+					<button type="reset" id="resetBtn"
+						class="text-[#149877] bg-white hover:bg-[#149877] hover:text-white border border-[#149877] rounded-md text-sm w-full sm:w-auto px-5 py-2 text-center">
+						Cancel
+					</button>
+					<button type="submit" id="searchBtn"
+						class="text-white bg-[#149877] hover:bg-transparent hover:text-[#149877] border border-[#149877] rounded-md text-sm w-full sm:w-auto px-5 py-2 text-center">
+						Search
+					</button>
+				</div>
+
+
+
+			</form>
+
+			<!-- Response -->
+			<section class="w-full max-h-fit mt-10 px-2 py-5 bg-white border border-slate-300 shadow rounded-md">
+				<h1 class="text-xl mb-4 text-center font-semibold">Search Results</h1>
+				<hr>
+
+				<!-- Show while search is going on -->
+				<p class="text-center text-slate-500 text-sm my-4" id="searchingState">Please enter a search query</p>
+
+				<!-- Show verified results -->
+				<div id="verifiedResults"
+					class="p-2 border-slate-900 mt-4 flex flex-col justify-stretch cursor-pointer text-xs lg:text-base">
+
+				</div>
+
+				<!-- Show suggestions (unverfied) -->
+				<div id="unverifiedResults"
+					class="p-2 border-slate-900 mt-4 flex flex-col justify-stretch cursor-pointer text-xs lg:text-base">
+				</div>
+
+
+			</section>
+
+
+		</section>
+
+		<!-- PDF Viewer section -->
+		<section class="w-0 lg:w-3/5 h-fit-content hidden  rounded-lg " id="viewPdfContainer">
+			<!-- <h1 class=" text-center font-bold text-2xl my-2">Preview </h1> -->
+
+			<!-- PDF FRAME -->
+			<iframe id="pdfFrame" src="" frameborder="1" width="100%" class="h-[100vh] rounded-md"></iframe>
+
+			<!-- BUTTONS -->
+			<div class="flex justify-end items-center p-2">
+				<div>
+					<button
+						class="py-1.5 px-5 mx-2 border border-[#149877] text-[#149877] rounded-md hover:text-white hover:bg-[#149877]"
+						onclick="closePdfViewer()">Close</button>
+					<button id="addToBuilderBtn" disabled=true
+						class="py-1.5 px-5 border border-[#149877] bg-[#149877] text-white rounded-md cursor-not-allowed">Add</button>
+				</div>
+
+			</div>
+		</section>
+	</div>
+
+	<script src="/public/script.js"></script>
+</body>
+
+</html>
